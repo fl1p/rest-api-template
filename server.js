@@ -1,71 +1,64 @@
-const express = require('express');
-const body_parser = require('body-parser');
+const express = require('express')
+const body_parser = require('body-parser')
 
-let data = require('./data')
-const server = express();
-const port = 4000;
+// let data = require('./data')
+const server = express()
+const port = 4000
 
-server.use(body_parser.json());
+// diskdb connection
+const db = require('diskdb')
+db.connect('./data', ['items'])
+
+
+server.use(body_parser.json())
 
 // GET ALL ITEMS
 server.get('/items', (req, res) => {
-    res.json(data);
-});
+    res.json(db.items.find())
+})
 
 // GET ITEM BY ID
 server.get('/items/:id', (req, res) => {
-    const itemId = req.params.id;
-    const item = data.find(_item => _item.id === itemId);
+    const itemId = req.params.id
+    const item = db.items.find({ id:itemId })
 
     if (item) {
-        res.json(item);
+        res.json(item)
     } else {
         res.json({ message: `item ${itemId} doesn't exist` })
     }
-});
+})
 
 // CREATE
 server.post('/items', (req, res) => {
-    const item = req.body;
-    console.log('Adding new item: ', item);
-
-    data.push(item)
-    res.json(data);
-});
+    const item = req.body
+    console.log('Adding new item: ', item)
+    // add new
+    db.items.save(item)
+    // return updated list
+    res.json(db.items.find())
+})
 
 // UPDATE
 server.put('/items/:id', (req, res) => {
-    const itemId = req.params.id;
-    const item = req.body;
-    console.log("Editing item: ", itemId, " to be ", item);
+    const itemId = req.params.id
+    const item = req.body
+    console.log("Editing item: ", itemId, " to be ", item)
 
-    const updatedListItems = [];
-    data.forEach(oldItem => {
-        if (oldItem.id === itemId) {
-            updatedListItems.push(item);
-        } else {
-            updatedListItems.push(oldItem);
-        }
-    });
+    db.items.update({id: itemId}, item)
 
-    data = updatedListItems;
-
-    res.json(data);
-});
+    res.json(db.items.find())
+})
 
 // DELETE
 server.delete('/items/:id', (req, res) => {
-    const itemId = req.params.id;
+    const itemId = req.params.id
 
     console.log("Delete item with id: ", itemId);
 
-    // filter list copy, by excluding item to delete
-    const filtered_list = data.filter(item => item.id !== itemId);
+    db.items.remove({ _id: itemId })
 
-    // replace old list with new one
-    data = filtered_list;
-
-    res.json(data);
+    res.json(db.items.find());
 });
 
 
